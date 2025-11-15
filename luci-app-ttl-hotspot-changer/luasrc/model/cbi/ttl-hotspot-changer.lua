@@ -1,4 +1,4 @@
-﻿local sys = require "luci.sys"
+local sys = require "luci.sys"
 
 local m = Map("ttl-hotspot-changer", translate("TTL Spoofing Settings"),
 	translate("Configure TTL/Hop-Limit spoofing rules, topology detection and helper scripts."))
@@ -53,3 +53,4 @@ local dep_section = m:section(SimpleSection)
 dep_section.template = "ttl-hotspot-changer/depctl"
 
 return m
+
