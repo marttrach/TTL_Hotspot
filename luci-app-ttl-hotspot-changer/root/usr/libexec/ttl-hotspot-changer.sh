@@ -5,6 +5,7 @@
 
 CONFIG="ttl-hotspot-changer.config"
 LOG_FILE="/tmp/ttl-hotspot-changer.log"
+MAX_LOG_LINES=400
 TABLE_NAME="ttlfix"
 CHAIN_PREROUTING="prerouting"
 CHAIN_POSTROUTING="postrouting"
@@ -17,10 +18,22 @@ WAN_IF=""
 LAN_IF=""
 ACTION="${1:-start}"
 
+trim_log() {
+	[ -f "$LOG_FILE" ] || return
+
+	local line_count
+	line_count=$(wc -l < "$LOG_FILE" 2>/dev/null)
+	line_count=${line_count:-0}
+	if [ "$line_count" -gt "$MAX_LOG_LINES" ]; then
+		tail -n "$MAX_LOG_LINES" "$LOG_FILE" > "${LOG_FILE}.tmp" && mv "${LOG_FILE}.tmp" "$LOG_FILE"
+	fi
+}
+
 case "$ACTION" in
 status|log)
 	;;
 *)
+	trim_log
 	exec >>"$LOG_FILE" 2>&1
 	;;
 esac
