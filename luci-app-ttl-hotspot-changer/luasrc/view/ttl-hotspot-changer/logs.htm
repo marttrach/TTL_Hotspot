@@ -1,6 +1,6 @@
 <%+header%>
 
-<h2><%:ttl-hotspor-changer Logs%></h2>
+<h2><%:ttl-hotspot-changer Logs%></h2>
 <div class="cbi-section">
 	<pre id="uh-log-view" style="min-height:280px; overflow:auto; background:#111; color:#eee; padding:12px;"></pre>
 	<button class="btn cbi-button cbi-button-apply" onclick="uhRefreshLog()">
@@ -16,7 +16,7 @@
 	}
 
 	function uhRefreshLog() {
-		XHR.get(L.url('admin/network/ttl-hotspor-changer/action/log'), null, function (x, data) {
+		XHR.get(L.url('admin/network/ttl-hotspot-changer/action/log'), null, function (x, data) {
 			if (!data) {
 				uhRenderLog('<%:Failed to load log.%>');
 				return;
@@ -30,3 +30,4 @@
 </script>
 
 <%+footer%>
+

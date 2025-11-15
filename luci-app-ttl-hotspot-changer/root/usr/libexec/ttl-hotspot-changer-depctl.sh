@@ -1,7 +1,7 @@
 #!/bin/sh
 
 PKG_LIST="kmod-nft-core kmod-nft-offload kmod-nft-nat nftables jsonfilter"
-LOG_FILE="/tmp/ttl-hotspor-changer-depctl.log"
+LOG_FILE="/tmp/ttl-hotspot-changer-depctl.log"
 
 log() {
 	local level="${1:-INFO}"
@@ -83,3 +83,4 @@ esac
 log INFO "Dependency helper finished with code $EXIT_CODE"
 printf '__DEPCTL_EXIT:%s\n' "$EXIT_CODE"
 exit "$EXIT_CODE"
+

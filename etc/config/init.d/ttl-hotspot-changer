@@ -3,14 +3,14 @@
 START=99
 STOP=10
 
-. /lib/functions/ttl-hotspor-changer.sh
+. /lib/functions/ttl-hotspot-changer.sh
 
 start() {
-    if [ "$(uci -q get ttl-hotspor-changer.config.enable)" = "1" ]; then
+    if [ "$(uci -q get ttl-hotspot-changer.config.enable)" = "1" ]; then
         detect_topology
         apply_ttl_spoof
     else
-        echo "[!] ttl-hotspor-changer disabled via UCI config"
+        echo "[!] ttl-hotspot-changer disabled via UCI config"
     fi
 }
 
@@ -26,3 +26,4 @@ reload() {
     stop
     start
 }
+

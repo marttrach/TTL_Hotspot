@@ -1,7 +1,7 @@
-
-config ttl-hotspor-changer 'config'
+config ttl-hotspot-changer 'config'
 	option enable '1'
+	option smart '1'
 	option mode 'sub'
 	option ttl_mode 'custom'
-	option smart '1'
 	option custom_ttl '65'
+

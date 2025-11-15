@@ -1,27 +1,27 @@
-module("luci.controller.ttl-hotspor-changer", package.seeall)
+module("luci.controller.ttl-hotspot-changer", package.seeall)
 
 local http = require "luci.http"
 local util = require "luci.util"
 local sys = require "luci.sys"
 local fs = require "nixio.fs"
 
-local LOG_FILE = "/tmp/ttl-hotspor-changer.log"
-local DEP_HELPER = "/usr/libexec/ttl-hotspor-changer-depctl.sh"
+local LOG_FILE = "/tmp/ttl-hotspot-changer.log"
+local DEP_HELPER = "/usr/libexec/ttl-hotspot-changer-depctl.sh"
 
 function index()
-	if not fs.access("/etc/config/ttl-hotspor-changer") then
+	if not fs.access("/etc/config/ttl-hotspot-changer") then
 		return
 	end
 
-	local page = entry({"admin", "network", "ttl-hotspor-changer"}, firstchild(), _("ttl-hotspor-changer"), 55)
+	local page = entry({"admin", "network", "ttl-hotspot-changer"}, firstchild(), _("ttl-hotspot-changer"), 55)
 	page.dependent = false
 
-	entry({"admin", "network", "ttl-hotspor-changer", "settings"}, cbi("ttl-hotspor-changer"), _("Settings"), 10).leaf = true
-	entry({"admin", "network", "ttl-hotspor-changer", "logs"}, template("ttl-hotspor-changer/logs"), _("Logs"), 20).leaf = true
+	entry({"admin", "network", "ttl-hotspot-changer", "settings"}, cbi("ttl-hotspot-changer"), _("Settings"), 10).leaf = true
+	entry({"admin", "network", "ttl-hotspot-changer", "logs"}, template("ttl-hotspot-changer/logs"), _("Logs"), 20).leaf = true
 
-	entry({"admin", "network", "ttl-hotspor-changer", "action", "log"}, call("action_log")).leaf = true
-	entry({"admin", "network", "ttl-hotspor-changer", "action", "install_deps"}, call("action_install_deps")).leaf = true
-	entry({"admin", "network", "ttl-hotspor-changer", "action", "remove_deps"}, call("action_remove_deps")).leaf = true
+	entry({"admin", "network", "ttl-hotspot-changer", "action", "log"}, call("action_log")).leaf = true
+	entry({"admin", "network", "ttl-hotspot-changer", "action", "install_deps"}, call("action_install_deps")).leaf = true
+	entry({"admin", "network", "ttl-hotspot-changer", "action", "remove_deps"}, call("action_remove_deps")).leaf = true
 end
 
 local function run_depctl(op)
@@ -57,3 +57,4 @@ function action_log()
 	http.prepare_content("application/json")
 	http.write_json({ log = log })
 end
+

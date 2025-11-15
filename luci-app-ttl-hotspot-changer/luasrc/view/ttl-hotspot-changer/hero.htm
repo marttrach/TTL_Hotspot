@@ -1,0 +1,130 @@
+<style>
+	.ttl-hero {
+		margin-bottom: 18px;
+		padding: 24px;
+		border-radius: 14px;
+		background: var(--main-bg-color, #0f111a);
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+		color: #e6edf3;
+	}
+	.ttl-hero h2 {
+		margin: 0;
+		font-size: 30px;
+		font-weight: 600;
+	}
+	.ttl-hero p {
+		margin: 12px 0 0 0;
+		color: rgba(230, 237, 243, 0.8);
+		font-size: 15px;
+		line-height: 1.6;
+	}
+	/* form card styling */
+	#cbi-ttl-hotspot-changer-config.cbi-section {
+		margin-top: 0;
+		margin-bottom: 20px;
+		padding: 26px 30px 30px;
+		border-radius: 14px;
+		background: var(--main-bg-color, #0f111a);
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+		color: #e6edf3;
+	}
+	#cbi-ttl-hotspot-changer-config.cbi-section h3 {
+		margin-top: 0;
+		font-size: 26px;
+		font-weight: 600;
+		color: #e6edf3;
+	}
+	#cbi-ttl-hotspot-changer-config .cbi-section-node {
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 18px;
+	}
+	#cbi-ttl-hotspot-changer-config .cbi-value {
+		display: flex;
+		align-items: center;
+		padding: 6px 0;
+		gap: 24px;
+	}
+	#cbi-ttl-hotspot-changer-config .cbi-value-title {
+		margin: 0;
+		font-size: 16px;
+		font-weight: 500;
+		color: rgba(230, 237, 243, 0.85);
+		flex: 0 0 220px;
+	}
+	#cbi-ttl-hotspot-changer-config .cbi-value-field {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 8px;
+	}
+	#cbi-ttl-hotspot-changer-config .cbi-value-field > *:not(.cbi-value-description) {
+		width: 100%;
+		max-width: 320px;
+	}
+	#cbi-ttl-hotspot-changer-config input.cbi-input-checkbox {
+		width: 22px;
+		height: 22px;
+		accent-color: #1f6feb;
+	}
+	#cbi-ttl-hotspot-changer-config .cbi-value-field select,
+	#cbi-ttl-hotspot-changer-config .cbi-value-field input[type="text"],
+	#cbi-ttl-hotspot-changer-config .cbi-value-field input[type="number"],
+	#cbi-ttl-hotspot-changer-config .cbi-value-field input.cbi-input-text {
+		border-radius: 10px;
+		padding: 12px 16px;
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		background: #1a1f2d;
+		color: #e6edf3;
+		font-size: 15px;
+		box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+		transition: border-color 0.15s ease, box-shadow 0.15s ease;
+	}
+	#cbi-ttl-hotspot-changer-config .cbi-value-field select:focus,
+	#cbi-ttl-hotspot-changer-config .cbi-value-field input[type="text"]:focus,
+	#cbi-ttl-hotspot-changer-config .cbi-value-field input[type="number"]:focus {
+		border-color: #1f6feb;
+		box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.25);
+		outline: none;
+	}
+	#cbi-ttl-hotspot-changer-config .cbi-value-description {
+		font-size: 13px;
+		color: rgba(230, 237, 243, 0.65);
+		text-align: right;
+		width: 100%;
+	}
+	#cbi-ttl-hotspot-changer-config-enable .cbi-value-field {
+		align-items: flex-start;
+	}
+	#cbi-ttl-hotspot-changer-config-enable input.cbi-input-checkbox {
+		align-self: flex-start;
+	}
+	@media (max-width: 720px) {
+		#cbi-ttl-hotspot-changer-config .cbi-value {
+			flex-direction: column;
+			align-items: flex-start;
+		}
+		#cbi-ttl-hotspot-changer-config .cbi-value-field {
+			align-items: stretch;
+		}
+		#cbi-ttl-hotspot-changer-config .cbi-value-title {
+			flex: none;
+		}
+		#cbi-ttl-hotspot-changer-config .cbi-value-description {
+			text-align: left;
+		}
+	}
+</style>
+
+<div class="ttl-hero">
+	<h2>ttl-hotspot-changer</h2>
+	<p>
+		<%:Configure TTL/Hop-Limit spoofing rules, topology detection and helper scripts.%>
+	</p>
+</div>
+

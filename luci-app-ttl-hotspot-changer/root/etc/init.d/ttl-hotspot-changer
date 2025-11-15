@@ -4,14 +4,14 @@ START=98
 STOP=10
 USE_PROCD=1
 EXTRA_COMMANDS="status log install_deps remove_deps"
-EXTRA_HELP="	status		Show nft rules applied by ttl-hotspor-changer
+EXTRA_HELP="	status		Show nft rules applied by ttl-hotspot-changer
 	log		Print limited log output
 	install_deps	Run dependency helper (install)
 	remove_deps	Run dependency helper (remove)"
 
-CONFIG_NAME="ttl-hotspor-changer"
-EXEC="/usr/libexec/ttl-hotspor-changer.sh"
-DEPS_HELPER="/usr/libexec/ttl-hotspor-changer-depctl.sh"
+CONFIG_NAME="ttl-hotspot-changer"
+EXEC="/usr/libexec/ttl-hotspot-changer.sh"
+DEPS_HELPER="/usr/libexec/ttl-hotspot-changer-depctl.sh"
 
 . /lib/functions.sh
 
@@ -26,7 +26,7 @@ start_service() {
 	config_get_bool enabled config enable 0
 
 	if [ "$enabled" -ne 1 ]; then
-		logger -t ttl-hotspor-changer "Disabled via UCI, not starting"
+		logger -t ttl-hotspot-changer "Disabled via UCI, not starting"
 		maybe_disable_rules
 		return 1
 	fi
@@ -41,6 +41,17 @@ start_service() {
 
 stop_service() {
 	maybe_disable_rules
+}
+
+stop() {
+	local service_name="ttl-hotspot-changer"
+
+	if command -v ubus >/dev/null 2>&1; then
+		# Ignore "Not found" errors when the service has never been registered with procd.
+		ubus -S call service delete "{\"name\":\"${service_name}\"}" >/dev/null 2>&1 || true
+	fi
+
+	stop_service
 }
 
 reload_service() {
@@ -67,3 +78,4 @@ install_deps() {
 remove_deps() {
 	"$DEPS_HELPER" remove
 }
+

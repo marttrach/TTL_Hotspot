@@ -1,10 +1,10 @@
 #!/bin/sh
 
-# ttl-hotspor-changer TTL helper
-# This script can be run manually or via /etc/init.d/ttl-hotspor-changer
+# ttl-hotspot-changer TTL helper
+# This script can be run manually or via /etc/init.d/ttl-hotspot-changer
 
-CONFIG="ttl-hotspor-changer.config"
-LOG_FILE="/tmp/ttl-hotspor-changer.log"
+CONFIG="ttl-hotspot-changer.config"
+LOG_FILE="/tmp/ttl-hotspot-changer.log"
 TABLE_NAME="ttlfix"
 CHAIN_PREROUTING="prerouting"
 CHAIN_POSTROUTING="postrouting"
@@ -79,7 +79,7 @@ detect_topology() {
 
 		if [ "$MODE" = "auto" ]; then
 			uci set ${CONFIG}.mode="$detect_mode"
-			uci commit ttl-hotspor-changer
+			uci commit ttl-hotspot-changer
 			log INFO "Stored detected mode=${detect_mode} into UCI"
 		fi
 	fi
@@ -160,23 +160,23 @@ stop_worker() {
 
 usage() {
 	cat <<'EOF'
-ttl-hotspor-changer helper
+ttl-hotspot-changer helper
 
-Usage: ttl-hotspor-changer.sh <start|stop|restart|status|log>
+Usage: ttl-hotspot-changer.sh <start|stop|restart|status|log>
 EOF
 }
 
 case "$ACTION" in
 start)
-	log INFO "Starting ttl-hotspor-changer worker"
+	log INFO "Starting ttl-hotspot-changer worker"
 	start_worker
 	;;
 stop)
-	log INFO "Stopping ttl-hotspor-changer worker"
+	log INFO "Stopping ttl-hotspot-changer worker"
 	stop_worker
 	;;
 restart)
-	log INFO "Restarting ttl-hotspor-changer worker"
+	log INFO "Restarting ttl-hotspot-changer worker"
 	stop_worker
 	start_worker
 	;;
@@ -191,3 +191,4 @@ log)
 	exit 1
 	;;
 esac
+

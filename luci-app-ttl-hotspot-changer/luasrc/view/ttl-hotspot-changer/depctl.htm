@@ -78,7 +78,7 @@
 		output.textContent = '<%:Running...%>';
 		var endpoint = (action === 'install') ? 'install_deps' : 'remove_deps';
 
-		XHR.get(L.url('admin/network/ttl-hotspor-changer/action/' + endpoint), null, function (x, data) {
+		XHR.get(L.url('admin/network/ttl-hotspot-changer/action/' + endpoint), null, function (x, data) {
 			if (!data) {
 				output.textContent = '<%:No response from helper.%>';
 				return;
@@ -90,3 +90,4 @@
 		});
 	}
 </script>
+
