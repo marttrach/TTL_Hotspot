@@ -3,14 +3,14 @@
 START=99
 STOP=10
 
-. /lib/functions/unlimited-hotspot.sh
+. /lib/functions/ttl-hotspor-changer.sh
 
 start() {
-    if [ "$(uci -q get unlimited-hotspot.config.enable)" = "1" ]; then
+    if [ "$(uci -q get ttl-hotspor-changer.config.enable)" = "1" ]; then
         detect_topology
         apply_ttl_spoof
     else
-        echo "[!] unlimited-hotspot disabled via UCI config"
+        echo "[!] ttl-hotspor-changer disabled via UCI config"
     fi
 }
 
