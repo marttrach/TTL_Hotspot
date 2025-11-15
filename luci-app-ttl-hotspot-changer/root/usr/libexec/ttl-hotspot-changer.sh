@@ -65,8 +65,17 @@ load_config() {
 }
 
 get_ifnames() {
-	WAN_IF="$(ubus call network.interface.5g_mbim status 2>/dev/null | jsonfilter -e '@["l3_device"]')"
-	[ -z "$WAN_IF" ] && WAN_IF="$(uci -q get network.wan.device || uci -q get network.wan.ifname || echo wwan0)"
+	local ubus_payload
+
+	ubus_payload="$(ubus call network.interface.wan status 2>/dev/null)"
+	if [ -n "$ubus_payload" ]; then
+		WAN_IF="$(printf '%s' "$ubus_payload" | jsonfilter -e '@["l3_device"]' 2>/dev/null)"
+	fi
+
+	if [ -z "$WAN_IF" ]; then
+		WAN_IF="$(uci -q get network.wan.device || uci -q get network.wan.ifname || echo wwan0)"
+	fi
+
 	LAN_IF="$(uci -q get network.lan.device || uci -q get network.lan.ifname || echo br-lan)"
 
 	log INFO "Interface detection => WAN_IF=${WAN_IF}, LAN_IF=${LAN_IF}"
