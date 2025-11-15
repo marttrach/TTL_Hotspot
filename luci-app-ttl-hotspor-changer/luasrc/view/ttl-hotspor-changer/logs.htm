@@ -1,24 +1,24 @@
 <%+header%>
 
-<h2><%:ttl-hotspor-changer ?亥?%></h2>
+<h2><%:ttl-hotspor-changer Logs%></h2>
 <div class="cbi-section">
 	<pre id="uh-log-view" style="min-height:280px; overflow:auto; background:#111; color:#eee; padding:12px;"></pre>
 	<button class="btn cbi-button cbi-button-apply" onclick="uhRefreshLog()">
-		<%:??渡?%>
+		<%:Refresh%>
 	</button>
 </div>
 
 <script type="text/javascript">
 	function uhRenderLog(text) {
 		var box = document.getElementById('uh-log-view');
-		box.textContent = text || '<%:?桀?瘝??亥?%>';
+		box.textContent = text || '<%:No log output yet.%>';
 		box.scrollTop = box.scrollHeight;
 	}
 
 	function uhRefreshLog() {
 		XHR.get(L.url('admin/network/ttl-hotspor-changer/action/log'), null, function (x, data) {
 			if (!data) {
-				uhRenderLog('<%:霈?仃??>');
+				uhRenderLog('<%:Failed to load log.%>');
 				return;
 			}
 			uhRenderLog(data.log || '');

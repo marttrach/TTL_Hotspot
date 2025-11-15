@@ -1,14 +1,14 @@
 <div class="cbi-section">
-	<h3><%:靘陷憟辣?拇?%></h3>
+	<h3><%:Dependency Helper%></h3>
 	<p>
-		<%:銝?萄?鋆?蝘駁 nftables 隞亙? TTL Spoof ????kmod嚗靘踹翰?蝵脯?>
+		<%:Install or remove nftables / TTL spoof related kmods and utilities with a single click.%>
 	</p>
 	<div class="cbi-section-node">
 		<button type="button" class="btn cbi-button cbi-button-apply" onclick="depctlRun('install')">
-			<%:摰?敹?憟辣%>
+			<%:Install required packages%>
 		</button>
 		<button type="button" class="btn cbi-button cbi-button-reset" onclick="depctlRun('remove')">
-			<%:蝘駁憟辣%>
+			<%:Remove installed packages%>
 		</button>
 	</div>
 	<pre id="depctl-output" class="cbi-section-node" style="min-height: 140px; margin-top: 8px; overflow:auto;"></pre>
@@ -17,12 +17,12 @@
 <script type="text/javascript">
 	function depctlRun(action) {
 		var output = document.getElementById('depctl-output');
-		output.textContent = '<%:?瑁?銝?..%>';
+		output.textContent = '<%:Running...%>';
 		var endpoint = (action === 'install') ? 'install_deps' : 'remove_deps';
 
 		XHR.get(L.url('admin/network/ttl-hotspor-changer/action/' + endpoint), null, function (x, data) {
 			if (!data) {
-				output.textContent = '<%:?⊥???蝯?%>';
+				output.textContent = '<%:No response from helper.%>';
 				return;
 			}
 
