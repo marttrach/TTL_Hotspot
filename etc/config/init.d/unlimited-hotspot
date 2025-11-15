@@ -1,0 +1,28 @@
+#!/bin/sh /etc/rc.common
+
+START=99
+STOP=10
+
+. /lib/functions/unlimited-hotspot.sh
+
+start() {
+    if [ "$(uci -q get unlimited-hotspot.config.enable)" = "1" ]; then
+        detect_topology
+        apply_ttl_spoof
+    else
+        echo "[!] unlimited-hotspot disabled via UCI config"
+    fi
+}
+
+stop() {
+    clear_rules
+}
+
+status() {
+    show_rules
+}
+
+reload() {
+    stop
+    start
+}
