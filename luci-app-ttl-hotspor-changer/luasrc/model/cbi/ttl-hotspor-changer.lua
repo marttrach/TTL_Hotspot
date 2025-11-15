@@ -3,15 +3,11 @@ local sys = require "luci.sys"
 local m = Map("ttl-hotspor-changer", translate("ttl-hotspor-changer"),
 	translate("Configure TTL/Hop-Limit spoofing rules, topology detection and helper scripts."))
 
-local s = m:section(NamedSection, "config", "ttl-hotspor-changer", translate("Service & Parameters"))
+local s = m:section(NamedSection, "config", "ttl-hotspor-changer", translate("TTL Spoofing Settings"))
 s.anonymous = false
 s.addremove = false
-s:tab("general", translate("Control"))
-s:tab("topology", translate("Topology & Mode"))
-s:tab("ttl", translate("TTL Settings"))
 
-local enable = s:taboption("general", Flag, "enable", translate("Enable service"),
-	translate("Apply TTL/Hop-Limit nftables rules when enabled, remove them when disabled."))
+local enable = s:option(Flag, "enable", translate("Enable"))
 enable.rmempty = false
 enable.default = enable.enabled
 
@@ -26,26 +22,24 @@ function enable.write(self, section, value)
 	end
 end
 
-local smart = s:taboption("general", Flag, "smart", translate("Smart detection"),
-	translate("Automatically detect topology and adjust rules when possible."))
+local smart = s:option(Flag, "smart", translate("Smart detection"))
 smart.rmempty = false
 smart.default = smart.enabled
 
-local mode = s:taboption("topology", ListValue, "mode", translate("Operation mode"),
-	translate("Choose whether TTL is applied on WAN (main router) or LAN (sub router)."))
-mode:value("main", translate("Main router"))
-mode:value("sub", translate("Sub router"))
+local mode = s:option(ListValue, "mode", translate("Router Mode"))
+mode:value("main", translate("Force Main Router"))
+mode:value("sub", translate("Force Sub Router"))
 mode:value("auto", translate("Auto detect"))
 mode.default = "sub"
 
-local ttl_mode = s:taboption("ttl", ListValue, "ttl_mode", translate("TTL mode"))
+local ttl_mode = s:option(ListValue, "ttl_mode", translate("TTL Emulation Mode"))
 ttl_mode:value("force55", "Force 55")
 ttl_mode:value("normal", "Normal 65")
 ttl_mode:value("smart", translate("Smart 65"))
-ttl_mode:value("custom", translate("Custom value"))
+ttl_mode:value("custom", translate("Custom TTL"))
 ttl_mode.default = "custom"
 
-local custom_ttl = s:taboption("ttl", Value, "custom_ttl", translate("Custom TTL value"))
+local custom_ttl = s:option(Value, "custom_ttl", translate("Custom TTL Value (1~255)"))
 custom_ttl.datatype = "range(1,255)"
 custom_ttl.placeholder = "65"
 custom_ttl.default = "65"

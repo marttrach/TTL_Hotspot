@@ -54,8 +54,14 @@ define Package/$(PKG_NAME)/prerm
 #!/bin/sh
 [ -n "$$IPKG_INSTROOT" ] && exit 0
 if [ -x /etc/init.d/ttl-hotspor-changer ]; then
-	/etc/init.d/ttl-hotspor-changer stop >/dev/null 2>&1
-	/etc/init.d/ttl-hotspor-changer disable >/dev/null 2>&1
+	/etc/init.d/ttl-hotspor-changer stop >/dev/null 2>&1 || true
+	if command -v ubus >/dev/null 2>&1 && ubus call service list '{ "name": "ttl-hotspor-changer" }' >/dev/null 2>&1; then
+		/etc/init.d/ttl-hotspor-changer disable >/dev/null 2>&1 || true
+	else
+		for link in /etc/rc.d/*ttl-hotspor-changer; do
+			[ -L "$$link" ] && rm -f "$$link"
+		done
+	fi
 fi
 exit 0
 endef
