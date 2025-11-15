@@ -3,11 +3,14 @@ local sys = require "luci.sys"
 local m = Map("ttl-hotspor-changer", translate("ttl-hotspor-changer"),
 	translate("Configure TTL/Hop-Limit spoofing rules, topology detection and helper scripts."))
 
+local hero = m:section(SimpleSection)
+hero.template = "ttl-hotspor-changer/hero"
+
 local s = m:section(NamedSection, "config", "ttl-hotspor-changer", translate("TTL Spoofing Settings"))
 s.anonymous = false
 s.addremove = false
 
-local enable = s:option(Flag, "enable", translate("Enable"))
+local enable = s:option(Flag, "enable", translate("啟用"))
 enable.rmempty = false
 enable.default = enable.enabled
 
@@ -22,7 +25,7 @@ function enable.write(self, section, value)
 	end
 end
 
-local smart = s:option(Flag, "smart", translate("Smart detection"))
+local smart = s:option(Flag, "smart", translate("Auto detect topology"))
 smart.rmempty = false
 smart.default = smart.enabled
 
