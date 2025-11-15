@@ -43,17 +43,6 @@ stop_service() {
 	maybe_disable_rules
 }
 
-stop() {
-	local service_name="ttl-hotspot-changer"
-
-	if command -v ubus >/dev/null 2>&1; then
-		# Ignore "Not found" errors when the service has never been registered with procd.
-		ubus -S call service delete "{\"name\":\"${service_name}\"}" >/dev/null 2>&1 || true
-	fi
-
-	stop_service
-}
-
 reload_service() {
 	stop
 	start
