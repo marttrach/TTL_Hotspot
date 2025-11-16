@@ -44,6 +44,21 @@ luci-app-ttl-hotspot-changer/
    make menuconfig
    # LuCI -> Applications -> luci-app-ttl-hotspot-changer (選 M 或 <*>)
    ```
+
+### 把 舊kernel 的 build dir 整個砍掉 (例rockchip)
+   ```sh
+   rm -rf build_dir/target-aarch64_generic_musl/linux-rockchip_armv8
+   rm -rf build_dir/target-aarch64_generic_musl/root-rockchip
+   ```
+### 把 舊kernel package 的 "已安裝" 標記也刪掉(例rockchip)
+   ```sh
+   rm -f staging_dir/target-aarch64_generic_musl/stamp/.package_kernel_installed
+   ```
+## 先準備 + 編 kernel
+   ```sh
+   make target/linux/{prepare,compile} V=s -j$(nproc)
+   ```
+
 2. **編譯單一套件**
    ```sh
    make package/luci-app-ttl-hotspot-changer/compile V=s
