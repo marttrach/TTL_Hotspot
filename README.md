@@ -56,7 +56,9 @@ luci-app-ttl-hotspot-changer/
    ```
 ## 先準備 + 編 kernel
    ```sh
-   make target/linux/{prepare,compile} V=s -j$(nproc)
+   make tools/install -j"$(nproc)" V=s
+   make toolchain/install -j"$(nproc)" V=s
+   make target/linux/{clean,prepare,compile} V=s -j$(nproc)
    ```
 
 2. **編譯單一套件**
