@@ -70,6 +70,10 @@ luci-app-ttl-hotspot-changer/
    ```sh
    make package/luci-app-ttl-hotspot-changer/{clean,compile} V=s
    ```
+4. **全包編**
+   ```sh
+   make package/compile -j$(nproc) V=s
+   ```
 
 ## 安裝與測試
 1. **複製 ipk 到裝置**
