@@ -6,6 +6,9 @@
 	<button class="btn cbi-button cbi-button-apply" onclick="uhRefreshLog()">
 		<%:Refresh%>
 	</button>
+	<button class="btn cbi-button cbi-button-reset" onclick="uhClearLog()">
+		<%:Clear%>
+	</button>
 </div>
 
 <script type="text/javascript">
@@ -22,6 +25,17 @@
 				return;
 			}
 			uhRenderLog(data.log || '');
+		});
+	}
+
+	function uhClearLog() {
+		if (!confirm('<%:Are you sure you want to clear the log?%>')) {
+			return;
+		}
+		XHR.get(L.url('admin/network/ttl-hotspot-changer/action/clear_log'), null, function (x, data) {
+			if (data && data.success) {
+				uhRenderLog('');
+			}
 		});
 	}
 

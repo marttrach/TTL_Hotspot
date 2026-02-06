@@ -19,6 +19,7 @@ function index()
 	entry({"admin", "network", "ttl-hotspot-changer", "logs"}, template("ttl-hotspot-changer/logs"), _("Logs"), 20).leaf = true
 
 	entry({"admin", "network", "ttl-hotspot-changer", "action", "log"}, call("action_log")).leaf = true
+	entry({"admin", "network", "ttl-hotspot-changer", "action", "clear_log"}, call("action_clear_log")).leaf = true
 end
 
 function action_log()
@@ -30,5 +31,14 @@ function action_log()
 
 	http.prepare_content("application/json")
 	http.write_json({ log = log })
+end
+
+function action_clear_log()
+	if fs.access(LOG_FILE) then
+		fs.writefile(LOG_FILE, "")
+	end
+
+	http.prepare_content("application/json")
+	http.write_json({ success = true })
 end
 

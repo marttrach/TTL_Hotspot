@@ -152,28 +152,52 @@ clear_rules() {
 	log INFO "TTL spoof rules removed"
 }
 
-# Check if the mwan3 target interface is currently connected
-# Returns 0 if interface is online, 1 otherwise
+# Check if the mwan3 target interface is currently the ACTIVE default route
+# Returns 0 if interface is the active default route, 1 otherwise
 mwan3_check() {
 	local iface="$1"
-	local status
+	local iface_device=""
+	local active_device=""
 
 	if ! command -v mwan3 >/dev/null 2>&1; then
 		log WARN "mwan3 command not found, cannot check interface status"
 		return 1
 	fi
 
-	# Parse mwan3 status output to check if interface is online
-	status=$(mwan3 status 2>/dev/null | grep -A5 "interface $iface" | grep -E "^\s*(online|tracking active)")
+	# Get the device name for the mwan3 interface
+	iface_device=$(ubus call network.interface."$iface" status 2>/dev/null | jsonfilter -e '@["l3_device"]' 2>/dev/null)
+	if [ -z "$iface_device" ]; then
+		# Fallback: try to get device from UCI
+		iface_device=$(uci -q get network."$iface".device || uci -q get network."$iface".ifname)
+	fi
 
-	if [ -n "$status" ]; then
-		log INFO "mwan3: Interface $iface is online"
+	if [ -z "$iface_device" ]; then
+		log WARN "mwan3: Cannot determine device for interface $iface"
+		return 1
+	fi
+
+	log INFO "mwan3: Interface $iface has device $iface_device"
+
+	# Check if this device is the current default route
+	# The active default route shows which interface mwan3 is actually using
+	active_device=$(ip route show default 2>/dev/null | head -n1 | awk '/dev/ {for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}')
+
+	if [ -z "$active_device" ]; then
+		log WARN "mwan3: Cannot determine active default route device"
+		return 1
+	fi
+
+	log INFO "mwan3: Current active default route device is $active_device"
+
+	if [ "$iface_device" = "$active_device" ]; then
+		log INFO "mwan3: Interface $iface ($iface_device) IS the active default route"
 		return 0
 	else
-		log INFO "mwan3: Interface $iface is offline or not found"
+		log INFO "mwan3: Interface $iface ($iface_device) is NOT the active route (active: $active_device)"
 		return 1
 	fi
 }
+
 
 start_worker() {
 	load_config

@@ -5,7 +5,6 @@
 
 CONFIG="ttl-hotspot-changer.config"
 LOG_FILE="/tmp/ttl-hotspot-changer.log"
-MAX_LOG_LINES=400
 TABLE_NAME="ttlfix"
 CHAIN_PREROUTING="prerouting"
 CHAIN_POSTROUTING="postrouting"
@@ -16,24 +15,14 @@ SMART=0
 MODE=""
 WAN_IF=""
 LAN_IF=""
+MWAN3_MODE=0
+MWAN3_INTERFACE=""
 ACTION="${1:-start}"
-
-trim_log() {
-	[ -f "$LOG_FILE" ] || return
-
-	local line_count
-	line_count=$(wc -l < "$LOG_FILE" 2>/dev/null)
-	line_count=${line_count:-0}
-	if [ "$line_count" -gt "$MAX_LOG_LINES" ]; then
-		tail -n "$MAX_LOG_LINES" "$LOG_FILE" > "${LOG_FILE}.tmp" && mv "${LOG_FILE}.tmp" "$LOG_FILE"
-	fi
-}
 
 case "$ACTION" in
 status|log)
 	;;
 *)
-	trim_log
 	exec >>"$LOG_FILE" 2>&1
 	;;
 esac
@@ -57,25 +46,19 @@ load_config() {
 	TTL_MODE="$(uci -q get ${CONFIG}.ttl_mode)"
 	CUSTOM_TTL="$(uci -q get ${CONFIG}.custom_ttl)"
 	SMART="$(uci -q get ${CONFIG}.smart)"
+	MWAN3_MODE="$(uci -q get ${CONFIG}.mwan3_mode)"
+	MWAN3_INTERFACE="$(uci -q get ${CONFIG}.mwan3_interface)"
 
 	[ -z "$MODE" ] && MODE="sub"
 	[ -z "$TTL_MODE" ] && TTL_MODE="force55"
 	[ -z "$CUSTOM_TTL" ] && CUSTOM_TTL="65"
 	[ "$SMART" = "1" ] && SMART=1 || SMART=0
+	[ "$MWAN3_MODE" = "1" ] && MWAN3_MODE=1 || MWAN3_MODE=0
 }
 
 get_ifnames() {
-	local ubus_payload
-
-	ubus_payload="$(ubus call network.interface.wan status 2>/dev/null)"
-	if [ -n "$ubus_payload" ]; then
-		WAN_IF="$(printf '%s' "$ubus_payload" | jsonfilter -e '@["l3_device"]' 2>/dev/null)"
-	fi
-
-	if [ -z "$WAN_IF" ]; then
-		WAN_IF="$(uci -q get network.wan.device || uci -q get network.wan.ifname || echo wwan0)"
-	fi
-
+	WAN_IF="$(ubus call network.interface.5g_mbim status 2>/dev/null | jsonfilter -e '@["l3_device"]')"
+	[ -z "$WAN_IF" ] && WAN_IF="$(uci -q get network.wan.device || uci -q get network.wan.ifname || echo wwan0)"
 	LAN_IF="$(uci -q get network.lan.device || uci -q get network.lan.ifname || echo br-lan)"
 
 	log INFO "Interface detection => WAN_IF=${WAN_IF}, LAN_IF=${LAN_IF}"
@@ -169,8 +152,69 @@ clear_rules() {
 	log INFO "TTL spoof rules removed"
 }
 
+# Check if the mwan3 target interface is currently the ACTIVE default route
+# Returns 0 if interface is the active default route, 1 otherwise
+mwan3_check() {
+	local iface="$1"
+	local iface_device=""
+	local active_device=""
+
+	if ! command -v mwan3 >/dev/null 2>&1; then
+		log WARN "mwan3 command not found, cannot check interface status"
+		return 1
+	fi
+
+	# Get the device name for the mwan3 interface
+	iface_device=$(ubus call network.interface."$iface" status 2>/dev/null | jsonfilter -e '@["l3_device"]' 2>/dev/null)
+	if [ -z "$iface_device" ]; then
+		# Fallback: try to get device from UCI
+		iface_device=$(uci -q get network."$iface".device || uci -q get network."$iface".ifname)
+	fi
+
+	if [ -z "$iface_device" ]; then
+		log WARN "mwan3: Cannot determine device for interface $iface"
+		return 1
+	fi
+
+	log INFO "mwan3: Interface $iface has device $iface_device"
+
+	# Check if this device is the current default route
+	# The active default route shows which interface mwan3 is actually using
+	active_device=$(ip route show default 2>/dev/null | head -n1 | awk '/dev/ {for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}')
+
+	if [ -z "$active_device" ]; then
+		log WARN "mwan3: Cannot determine active default route device"
+		return 1
+	fi
+
+	log INFO "mwan3: Current active default route device is $active_device"
+
+	if [ "$iface_device" = "$active_device" ]; then
+		log INFO "mwan3: Interface $iface ($iface_device) IS the active default route"
+		return 0
+	else
+		log INFO "mwan3: Interface $iface ($iface_device) is NOT the active route (active: $active_device)"
+		return 1
+	fi
+}
+
+
 start_worker() {
 	load_config
+
+	# mwan3 mode: only apply TTL when target interface is connected
+	if [ "$MWAN3_MODE" -eq 1 ]; then
+		if [ -z "$MWAN3_INTERFACE" ]; then
+			log WARN "mwan3_mode enabled but mwan3_interface not set, falling back to normal mode"
+		elif ! mwan3_check "$MWAN3_INTERFACE"; then
+			log INFO "mwan3: Target interface $MWAN3_INTERFACE not connected, TTL rules not applied"
+			clear_rules
+			return 0
+		else
+			log INFO "mwan3: Target interface $MWAN3_INTERFACE is connected, applying TTL rules"
+		fi
+	fi
+
 	detect_topology
 	apply_ttl_spoof
 	show_rules
@@ -213,3 +257,4 @@ log)
 	exit 1
 	;;
 esac
+
