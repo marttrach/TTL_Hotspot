@@ -3,15 +3,12 @@
 START=98
 STOP=10
 USE_PROCD=1
-EXTRA_COMMANDS="status log install_deps remove_deps"
+EXTRA_COMMANDS="status log"
 EXTRA_HELP="	status		Show nft rules applied by ttl-hotspot-changer
-	log		Print limited log output
-	install_deps	Run dependency helper (install)
-	remove_deps	Run dependency helper (remove)"
+	log		Print limited log output"
 
 CONFIG_NAME="ttl-hotspot-changer"
 EXEC="/usr/libexec/ttl-hotspot-changer.sh"
-DEPS_HELPER="/usr/libexec/ttl-hotspot-changer-depctl.sh"
 
 . /lib/functions.sh
 
@@ -62,13 +59,5 @@ status() {
 
 log() {
 	"$EXEC" log
-}
-
-install_deps() {
-	"$DEPS_HELPER" install
-}
-
-remove_deps() {
-	"$DEPS_HELPER" remove
 }
 

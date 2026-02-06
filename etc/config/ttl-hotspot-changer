@@ -5,4 +5,6 @@ config ttl-hotspot-changer 'config'
 	option ttl_mode 'custom'
 	option smart '1'
 	option custom_ttl '65'
+	option mwan3_mode '0'
+	option mwan3_interface 'modem1'
 

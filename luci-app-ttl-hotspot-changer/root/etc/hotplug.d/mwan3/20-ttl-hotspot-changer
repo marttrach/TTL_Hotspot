@@ -1,0 +1,37 @@
+#!/bin/sh
+# mwan3 hotplug script for TTL Hotspot Changer
+# Triggers TTL spoofing rules when the specified interface becomes active
+
+[ -n "$INTERFACE" ] || exit 0
+
+. /lib/functions.sh
+config_load "ttl-hotspot-changer"
+
+mwan3_mode=""
+mwan3_interface=""
+enabled=""
+
+config_get mwan3_mode config mwan3_mode "0"
+config_get mwan3_interface config mwan3_interface ""
+config_get_bool enabled config enable 0
+
+# Exit if mwan3 mode is disabled or service disabled
+[ "$mwan3_mode" = "1" ] || exit 0
+[ "$enabled" -eq 1 ] || exit 0
+
+# Only react to the configured interface
+[ "$INTERFACE" = "$mwan3_interface" ] || exit 0
+
+EXEC="/usr/libexec/ttl-hotspot-changer.sh"
+LOG_TAG="ttl-hotspot-mwan3"
+
+case "$ACTION" in
+connected)
+	logger -t "$LOG_TAG" "Interface $INTERFACE connected, applying TTL rules"
+	"$EXEC" start
+	;;
+disconnected)
+	logger -t "$LOG_TAG" "Interface $INTERFACE disconnected, removing TTL rules"
+	"$EXEC" stop
+	;;
+esac

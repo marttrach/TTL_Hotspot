@@ -15,6 +15,8 @@ SMART=0
 MODE=""
 WAN_IF=""
 LAN_IF=""
+MWAN3_MODE=0
+MWAN3_INTERFACE=""
 ACTION="${1:-start}"
 
 case "$ACTION" in
@@ -44,11 +46,14 @@ load_config() {
 	TTL_MODE="$(uci -q get ${CONFIG}.ttl_mode)"
 	CUSTOM_TTL="$(uci -q get ${CONFIG}.custom_ttl)"
 	SMART="$(uci -q get ${CONFIG}.smart)"
+	MWAN3_MODE="$(uci -q get ${CONFIG}.mwan3_mode)"
+	MWAN3_INTERFACE="$(uci -q get ${CONFIG}.mwan3_interface)"
 
 	[ -z "$MODE" ] && MODE="sub"
 	[ -z "$TTL_MODE" ] && TTL_MODE="force55"
 	[ -z "$CUSTOM_TTL" ] && CUSTOM_TTL="65"
 	[ "$SMART" = "1" ] && SMART=1 || SMART=0
+	[ "$MWAN3_MODE" = "1" ] && MWAN3_MODE=1 || MWAN3_MODE=0
 }
 
 get_ifnames() {
@@ -147,8 +152,45 @@ clear_rules() {
 	log INFO "TTL spoof rules removed"
 }
 
+# Check if the mwan3 target interface is currently connected
+# Returns 0 if interface is online, 1 otherwise
+mwan3_check() {
+	local iface="$1"
+	local status
+
+	if ! command -v mwan3 >/dev/null 2>&1; then
+		log WARN "mwan3 command not found, cannot check interface status"
+		return 1
+	fi
+
+	# Parse mwan3 status output to check if interface is online
+	status=$(mwan3 status 2>/dev/null | grep -A5 "interface $iface" | grep -E "^\s*(online|tracking active)")
+
+	if [ -n "$status" ]; then
+		log INFO "mwan3: Interface $iface is online"
+		return 0
+	else
+		log INFO "mwan3: Interface $iface is offline or not found"
+		return 1
+	fi
+}
+
 start_worker() {
 	load_config
+
+	# mwan3 mode: only apply TTL when target interface is connected
+	if [ "$MWAN3_MODE" -eq 1 ]; then
+		if [ -z "$MWAN3_INTERFACE" ]; then
+			log WARN "mwan3_mode enabled but mwan3_interface not set, falling back to normal mode"
+		elif ! mwan3_check "$MWAN3_INTERFACE"; then
+			log INFO "mwan3: Target interface $MWAN3_INTERFACE not connected, TTL rules not applied"
+			clear_rules
+			return 0
+		else
+			log INFO "mwan3: Target interface $MWAN3_INTERFACE is connected, applying TTL rules"
+		fi
+	fi
+
 	detect_topology
 	apply_ttl_spoof
 	show_rules

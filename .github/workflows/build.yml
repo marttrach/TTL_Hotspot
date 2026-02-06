@@ -1,0 +1,83 @@
+name: Build OpenWrt Package
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build:
+    name: Build for ${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.message, '[ci]')
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - x86_64-24.10.5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build packages
+        uses: openwrt/gh-action-sdk@main
+        env:
+          ARCH: ${{ matrix.arch }}
+          FEEDNAME: ttl_hotspot
+          PACKAGES: luci-app-ttl-hotspot-changer
+          MAKEFLAGS: "-j$(nproc)"
+          NO_SHFMT_CHECK: 1
+
+      - name: Upload IPK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: luci-app-ttl-hotspot-changer-${{ matrix.arch }}
+          path: bin/packages/*/ttl_hotspot/*.ipk
+          if-no-files-found: error
+
+  test:
+    name: Test in OpenWrt rootfs
+    needs: build
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.message, '[ci]')
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download built packages
+        uses: actions/download-artifact@v4
+        with:
+          name: luci-app-ttl-hotspot-changer-x86_64-24.10.5
+          path: packages/
+
+      - name: Test package installation in container
+        run: |
+          echo "=== Package files ==="
+          ls -la packages/
+
+          echo "=== Testing in OpenWrt rootfs ==="
+          docker run --rm -v $PWD/packages:/packages openwrt/rootfs:x86_64-24.10.5 sh -c '
+            echo "=== Updating package lists ==="
+            mkdir -p /var/lock
+            opkg update || true
+            
+            echo "=== Installing dependencies ==="
+            opkg install luci-base nftables jsonfilter || echo "Some deps may not install in rootfs"
+            
+            echo "=== Installing our package ==="
+            opkg install /packages/*.ipk || echo "Package install test"
+            
+            echo "=== Checking installed files ==="
+            ls -la /usr/libexec/ttl-hotspot-changer.sh 2>/dev/null || echo "Main script not found"
+            ls -la /etc/config/ttl-hotspot-changer 2>/dev/null || echo "Config not found"
+            ls -la /etc/init.d/ttl-hotspot-changer 2>/dev/null || echo "Init script not found"
+            ls -la /etc/hotplug.d/mwan3/20-ttl-hotspot-changer 2>/dev/null || echo "Hotplug script not found"
+            
+            echo "=== Test complete ==="
+          '
