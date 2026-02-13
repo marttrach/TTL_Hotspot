@@ -57,7 +57,7 @@ load_config() {
 }
 
 get_ifnames() {
-	WAN_IF="$(ubus call network.interface.5g_mbim status 2>/dev/null | jsonfilter -e '@["l3_device"]')"
+	WAN_IF="$(ubus call network.interface.5g_mbim status 2>/dev/null | jsonfilter -e '@["l3_device"]' 2>/dev/null)"
 	[ -z "$WAN_IF" ] && WAN_IF="$(uci -q get network.wan.device || uci -q get network.wan.ifname || echo wwan0)"
 	LAN_IF="$(uci -q get network.lan.device || uci -q get network.lan.ifname || echo br-lan)"
 
@@ -152,48 +152,49 @@ clear_rules() {
 	log INFO "TTL spoof rules removed"
 }
 
-# Check if the mwan3 target interface is currently the ACTIVE default route
-# Returns 0 if interface is the active default route, 1 otherwise
+# Check if the mwan3 target interface is currently ONLINE
+# Uses mwan3's own tracking state (policy routing, not main routing table)
+# Returns 0 if interface is online, 1 otherwise
 mwan3_check() {
 	local iface="$1"
-	local iface_device=""
-	local active_device=""
+	local state=""
 
 	if ! command -v mwan3 >/dev/null 2>&1; then
 		log WARN "mwan3 command not found, cannot check interface status"
 		return 1
 	fi
 
-	# Get the device name for the mwan3 interface
-	iface_device=$(ubus call network.interface."$iface" status 2>/dev/null | jsonfilter -e '@["l3_device"]' 2>/dev/null)
-	if [ -z "$iface_device" ]; then
-		# Fallback: try to get device from UCI
-		iface_device=$(uci -q get network."$iface".device || uci -q get network."$iface".ifname)
+	# Method 1: Check mwan3 tracking state file (most reliable & fast)
+	local state_file="/var/run/mwan3/iface_state/${iface}"
+	if [ -f "$state_file" ]; then
+		state=$(cat "$state_file" 2>/dev/null)
+		log INFO "mwan3: Interface $iface tracking state = $state"
+		if [ "$state" = "online" ]; then
+			log INFO "mwan3: Interface $iface is ONLINE"
+			return 0
+		else
+			log INFO "mwan3: Interface $iface is OFFLINE (state: $state)"
+			return 1
+		fi
 	fi
 
-	if [ -z "$iface_device" ]; then
-		log WARN "mwan3: Cannot determine device for interface $iface"
+	# Method 2: Fallback — parse 'mwan3 status' output
+	log INFO "mwan3: State file not found for $iface, falling back to mwan3 status"
+	local status_line
+	status_line=$(mwan3 status 2>/dev/null | grep "interface ${iface} ")
+
+	if [ -z "$status_line" ]; then
+		log WARN "mwan3: Interface $iface not found in mwan3 status"
 		return 1
 	fi
 
-	log INFO "mwan3: Interface $iface has device $iface_device"
+	log INFO "mwan3: $status_line"
 
-	# Check if this device is the current default route
-	# The active default route shows which interface mwan3 is actually using
-	active_device=$(ip route show default 2>/dev/null | head -n1 | awk '/dev/ {for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}')
-
-	if [ -z "$active_device" ]; then
-		log WARN "mwan3: Cannot determine active default route device"
-		return 1
-	fi
-
-	log INFO "mwan3: Current active default route device is $active_device"
-
-	if [ "$iface_device" = "$active_device" ]; then
-		log INFO "mwan3: Interface $iface ($iface_device) IS the active default route"
+	if echo "$status_line" | grep -q "is online"; then
+		log INFO "mwan3: Interface $iface is ONLINE (via mwan3 status)"
 		return 0
 	else
-		log INFO "mwan3: Interface $iface ($iface_device) is NOT the active route (active: $active_device)"
+		log INFO "mwan3: Interface $iface is NOT online (via mwan3 status)"
 		return 1
 	fi
 }
