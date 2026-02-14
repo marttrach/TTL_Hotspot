@@ -17,6 +17,7 @@ WAN_IF=""
 LAN_IF=""
 MWAN3_MODE=0
 MWAN3_INTERFACE=""
+MWAN3_CHECK_INTERVAL=30
 ACTION="${1:-start}"
 
 case "$ACTION" in
@@ -48,12 +49,14 @@ load_config() {
 	SMART="$(uci -q get ${CONFIG}.smart)"
 	MWAN3_MODE="$(uci -q get ${CONFIG}.mwan3_mode)"
 	MWAN3_INTERFACE="$(uci -q get ${CONFIG}.mwan3_interface)"
+	MWAN3_CHECK_INTERVAL="$(uci -q get ${CONFIG}.mwan3_check_interval)"
 
 	[ -z "$MODE" ] && MODE="sub"
 	[ -z "$TTL_MODE" ] && TTL_MODE="force55"
 	[ -z "$CUSTOM_TTL" ] && CUSTOM_TTL="65"
 	[ "$SMART" = "1" ] && SMART=1 || SMART=0
 	[ "$MWAN3_MODE" = "1" ] && MWAN3_MODE=1 || MWAN3_MODE=0
+	[ -z "$MWAN3_CHECK_INTERVAL" ] && MWAN3_CHECK_INTERVAL=30
 }
 
 get_ifnames() {
@@ -152,49 +155,49 @@ clear_rules() {
 	log INFO "TTL spoof rules removed"
 }
 
-# Check if the mwan3 target interface is currently ONLINE
-# Uses mwan3's own tracking state (policy routing, not main routing table)
-# Returns 0 if interface is online, 1 otherwise
+# Check if the mwan3 target interface is currently ACTIVE in a policy
+# "online" is not enough — the interface must be actively carrying traffic.
+# mwan3 policy output shows active interfaces as: " interface_name (N%)"
+# Returns 0 if interface is active in a policy, 1 otherwise
 mwan3_check() {
 	local iface="$1"
-	local state=""
 
 	if ! command -v mwan3 >/dev/null 2>&1; then
 		log WARN "mwan3 command not found, cannot check interface status"
 		return 1
 	fi
 
-	# Method 1: Check mwan3 tracking state file (most reliable & fast)
+	# Quick check: if interface is offline, skip the heavier policy check
 	local state_file="/var/run/mwan3/iface_state/${iface}"
 	if [ -f "$state_file" ]; then
+		local state
 		state=$(cat "$state_file" 2>/dev/null)
-		log INFO "mwan3: Interface $iface tracking state = $state"
-		if [ "$state" = "online" ]; then
-			log INFO "mwan3: Interface $iface is ONLINE"
-			return 0
-		else
-			log INFO "mwan3: Interface $iface is OFFLINE (state: $state)"
+		if [ "$state" != "online" ]; then
+			log INFO "mwan3: Interface $iface tracking state = $state (offline, skipping)"
 			return 1
 		fi
+		log INFO "mwan3: Interface $iface is online, checking policy"
 	fi
 
-	# Method 2: Fallback — parse 'mwan3 status' output
-	log INFO "mwan3: State file not found for $iface, falling back to mwan3 status"
-	local status_line
-	status_line=$(mwan3 status 2>/dev/null | grep "interface ${iface} ")
+	# Parse mwan3 status to check if interface is active in any ipv4 policy
+	# Active entries look like: " modem1 (100%)" or " modem1 (50%)"
+	local mwan3_output
+	mwan3_output=$(mwan3 status 2>/dev/null)
 
-	if [ -z "$status_line" ]; then
-		log WARN "mwan3: Interface $iface not found in mwan3 status"
+	if [ -z "$mwan3_output" ]; then
+		log WARN "mwan3: Failed to get mwan3 status"
 		return 1
 	fi
 
-	log INFO "mwan3: $status_line"
+	# Extract ipv4 policy section and check for active interface
+	local policy_match
+	policy_match=$(echo "$mwan3_output" | sed -n '/^Current ipv4 policies:/,/^Current ipv6 policies:/p' | grep -E "^[[:space:]]+${iface}[[:space:]]+\([0-9]+%\)")
 
-	if echo "$status_line" | grep -q "is online"; then
-		log INFO "mwan3: Interface $iface is ONLINE (via mwan3 status)"
+	if [ -n "$policy_match" ]; then
+		log INFO "mwan3: Interface $iface is ACTIVE in policy:$policy_match"
 		return 0
 	else
-		log INFO "mwan3: Interface $iface is NOT online (via mwan3 status)"
+		log INFO "mwan3: Interface $iface is online but NOT active in any policy (another interface is handling traffic)"
 		return 1
 	fi
 }
@@ -225,11 +228,56 @@ stop_worker() {
 	clear_rules
 }
 
+watch_worker() {
+	load_config
+
+	if [ "$MWAN3_MODE" -ne 1 ]; then
+		log WARN "watch: mwan3_mode is not enabled, nothing to watch"
+		return 1
+	fi
+
+	if [ -z "$MWAN3_INTERFACE" ]; then
+		log WARN "watch: mwan3_interface not set, nothing to watch"
+		return 1
+	fi
+
+	log INFO "watch: Starting mwan3 policy watcher for interface=$MWAN3_INTERFACE interval=${MWAN3_CHECK_INTERVAL}s"
+
+	local ttl_applied=0
+
+	# Check if TTL rules are already present
+	if nft list table inet "${TABLE_NAME}" >/dev/null 2>&1; then
+		ttl_applied=1
+	fi
+
+	while true; do
+		if mwan3_check "$MWAN3_INTERFACE"; then
+			# Interface is active in policy — apply TTL if not yet applied
+			if [ "$ttl_applied" -eq 0 ]; then
+				log INFO "watch: Interface $MWAN3_INTERFACE became active, applying TTL rules"
+				detect_topology
+				apply_ttl_spoof
+				show_rules
+				ttl_applied=1
+			fi
+		else
+			# Interface is NOT active — remove TTL if applied
+			if [ "$ttl_applied" -eq 1 ]; then
+				log INFO "watch: Interface $MWAN3_INTERFACE no longer active, removing TTL rules"
+				clear_rules
+				ttl_applied=0
+			fi
+		fi
+
+		sleep "$MWAN3_CHECK_INTERVAL"
+	done
+}
+
 usage() {
 	cat <<'EOF'
 ttl-hotspot-changer helper
 
-Usage: ttl-hotspot-changer.sh <start|stop|restart|status|log>
+Usage: ttl-hotspot-changer.sh <start|stop|restart|watch|status|log>
 EOF
 }
 
@@ -246,6 +294,10 @@ restart)
 	log INFO "Restarting ttl-hotspot-changer worker"
 	stop_worker
 	start_worker
+	;;
+watch)
+	log INFO "Starting ttl-hotspot-changer mwan3 watcher"
+	watch_worker
 	;;
 status)
 	show_rules

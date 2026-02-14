@@ -7,4 +7,5 @@ config ttl-hotspot-changer 'config'
 	option custom_ttl '65'
 	option mwan3_mode '0'
 	option mwan3_interface 'modem1'
+	option mwan3_check_interval '30'
 

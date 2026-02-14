@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-ttl-hotspot-changer
-PKG_VERSION:=3.0.1
+PKG_VERSION:=3.0.2
 PKG_RELEASE:=3
 PKG_LICENSE:=MIT
 PKG_MAINTAINER:=TTL Hotspot Maintainers

@@ -57,13 +57,20 @@ mwan3_section.addremove = false
 local mwan3_mode = mwan3_section:option(Flag, "mwan3_mode", translate("Enable mwan3 Mode"))
 mwan3_mode.rmempty = false
 mwan3_mode.default = mwan3_mode.disabled
-mwan3_mode.description = translate("Only apply TTL rules when the specified interface is connected via mwan3 failover. Requires mwan3 package.")
+mwan3_mode.description = translate("Only apply TTL rules when the specified interface is actively carrying traffic via mwan3 policy. A background watcher will periodically check and automatically apply or remove TTL rules.")
 
 local mwan3_interface = mwan3_section:option(Value, "mwan3_interface", translate("Target Interface"))
 mwan3_interface.placeholder = "modem1"
 mwan3_interface.default = "modem1"
 mwan3_interface:depends("mwan3_mode", "1")
-mwan3_interface.description = translate("The mwan3 interface name that requires TTL spoofing. TTL rules will only be applied when this interface becomes active.")
+mwan3_interface.description = translate("The mwan3 interface name that requires TTL spoofing. TTL rules will only be applied when this interface becomes active in the mwan3 policy.")
+
+local mwan3_interval = mwan3_section:option(Value, "mwan3_check_interval", translate("Check Interval (seconds)"))
+mwan3_interval.datatype = "range(10,300)"
+mwan3_interval.placeholder = "30"
+mwan3_interval.default = "30"
+mwan3_interval:depends("mwan3_mode", "1")
+mwan3_interval.description = translate("How often the watcher checks if the target interface is active in the mwan3 policy. Lower values react faster to failover, but use more resources.")
 
 -- Dynamically populate mwan3 interfaces if available
 local uci = require "luci.model.uci".cursor()
