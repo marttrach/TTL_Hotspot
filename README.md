@@ -1,13 +1,16 @@
-﻿# LuCI App `ttl-hotspot-changer`
+# LuCI App `ttl-hotspot-changer`
 
 `ttl-hotspot-changer` 是一個 LuCI 介面與系統腳本的組合，協助在 OpenWrt 裝置上調整 TTL/Hop-Limit。它支援智慧偵測、依賴套件安裝、日誌檢視與完整的啟動腳本控制，可在 LuCI 中直接編輯 `enable`、`mode`、`ttl_mode`、`custom_ttl`、`smart` 等 UCI 參數；實際套用規則由 `/usr/libexec/ttl-hotspot-changer.sh` 透過 nftables 處理。
+
+> **適用版本**：OpenWrt 25.12+ (APK 套件管理器)。如需 24.10 版本，請切換到 `main` 分支。
 
 ## 功能特色
 - LuCI 介面：`LuCI > 網路 > ttl-hotspot-changer` 可切換主要/子路由模式、TTL 模式與自訂值。
 - 日誌與依賴：內建日誌檢視（讀取 `/tmp/ttl-hotspot-changer.log`）與依賴管理頁面（呼叫 `ttl-hotspot-changer-depctl.sh`）。
 - 服務控制：`/etc/init.d/ttl-hotspot-changer` 提供 `enable/disable/start/stop/status/log/install_deps/remove_deps` 指令，可在 LuCI 或 CLI 使用。
-- 預設設定檔：`/etc/config/ttl-hotspot-changer` 內含 `enable=1`、`mode=sub`、`ttl_mode=custom`、`custom_ttl=65`、`smart=1` 等可調參數。
+- 預設設定檔：`/etc/config/ttl-hotspot-changer` 內含 `enable=1`、`mode=sub`、`ttl_mode=custom`、`custom_ttl=65`、`smart=1`、`mwan3_mode=1`、`mwan3_check_interval=300` 等可調參數。
 - nftables 規則：所有規則集中在 `inet ttlfix` 表，方便檢查與排錯。
+- mwan3 整合：支援依據 mwan3 policy 自動套用/移除 TTL 規則，可設定定期檢查間隔。
 
 ## 專案結構
 ```
@@ -23,7 +26,7 @@ luci-app-ttl-hotspot-changer/
 ```
 
 ## 建置前準備
-1. **下載對應的 OpenWrt SDK** － 從 [OpenWrt Downloads](https://downloads.openwrt.org/) 取得目標韌體版本（例如 `23.05.3`）與平台（如 MT7981、Rockchip 等）的 `openwrt-sdk-*.tar.xz`。
+1. **下載對應的 OpenWrt SDK** － 從 [OpenWrt Downloads](https://downloads.openwrt.org/) 取得目標韌體版本（例如 `25.12.2`）與平台（如 MT7981、Rockchip 等）的 `openwrt-sdk-*.tar.xz`。
 2. **安裝主機依賴（Debian/Ubuntu 範例）**
    ```sh
    sudo apt update
@@ -65,7 +68,7 @@ luci-app-ttl-hotspot-changer/
    ```sh
    make package/luci-app-ttl-hotspot-changer/compile V=s
    ```
-   成品會出現在 `bin/packages/<arch>/luci/luci-app-ttl-hotspot-changer_*.ipk`。
+   成品會出現在 `bin/packages/<arch>/luci/luci-app-ttl-hotspot-changer_*.ipk`（或 `.apk`，取決於 OpenWrt 版本）。
 3. **快速重編譯**（清除舊中介檔後再編譯）
    ```sh
    make package/luci-app-ttl-hotspot-changer/{clean,compile} V=s
@@ -76,6 +79,21 @@ luci-app-ttl-hotspot-changer/
    ```
 
 ## 安裝與測試
+
+### OpenWrt 25.12+ (APK)
+1. **複製套件到裝置**
+   ```sh
+   scp bin/packages/*/luci/luci-app-ttl-hotspot-changer_*.apk root@192.168.1.1:/tmp/
+   ```
+2. **安裝與啟動服務**
+   ```sh
+   ssh root@192.168.1.1
+   apk add --allow-untrusted /tmp/luci-app-ttl-hotspot-changer_*.apk
+   /etc/init.d/ttl-hotspot-changer enable
+   /etc/init.d/ttl-hotspot-changer start
+   ```
+
+### OpenWrt 24.10 及更早版本 (opkg)
 1. **複製 ipk 到裝置**
    ```sh
    scp bin/packages/*/luci/luci-app-ttl-hotspot-changer_*.ipk root@192.168.1.1:/tmp/
@@ -87,6 +105,8 @@ luci-app-ttl-hotspot-changer/
    /etc/init.d/ttl-hotspot-changer enable
    /etc/init.d/ttl-hotspot-changer start
    ```
+
+### 通用操作
 3. **安裝依賴模組**（若目標韌體未預建）
    ```sh
    /etc/init.d/ttl-hotspot-changer install_deps
@@ -103,4 +123,5 @@ luci-app-ttl-hotspot-changer/
 - 變更主要/次要路由模式或 TTL 後，可直接在 LuCI 表單儲存，或以 `uci set ttl-hotspot-changer.config.<field>=...; uci commit` 透過 CLI 操作。
 - 若不再需要 nftables 規則，可執行 `/etc/init.d/ttl-hotspot-changer remove_deps` 移除自動安裝的 kmod。
 - 檢查規則時，使用 `nft list table inet ttlfix` 或 `/usr/libexec/ttl-hotspot-changer.sh status` 進行逐步排查。
-- 針對不同 CPU 平台請使用對應的 SDK 或在完整 OpenWrt 原始碼中重新設定 `Target System/Subtarget` 後再編譯，以確保輸出的 ipk 與目標架構相容。
+- 針對不同 CPU 平台請使用對應的 SDK 或在完整 OpenWrt 原始碼中重新設定 `Target System/Subtarget` 後再編譯，以確保輸出的套件與目標架構相容。
+- **OpenWrt 25.12 注意事項**：此版本使用 APK 套件管理器取代 opkg，**請勿使用 `apk upgrade` 更新已安裝系統**，建議透過 sysupgrade/ASU 進行系統更新。
