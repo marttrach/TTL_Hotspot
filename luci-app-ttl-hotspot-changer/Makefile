@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-ttl-hotspot-changer
-PKG_VERSION:=3.0.2
+PKG_VERSION:=3.1.0
 PKG_RELEASE:=3
 PKG_LICENSE:=MIT
 PKG_MAINTAINER:=TTL Hotspot Maintainers
@@ -35,12 +35,13 @@ if [ ! -f "$$CFG" ]; then
 cat <<'EOF' > "$$CFG"
 config ttl-hotspot-changer 'config'
 	option enable '1'
+	option smart '1'
 	option mode 'sub'
 	option ttl_mode 'custom'
-	option smart '1'
 	option custom_ttl '65'
-	option mwan3_mode '0'
+	option mwan3_mode '1'
 	option mwan3_interface 'modem1'
+	option mwan3_check_interval '300'
 EOF
 fi
 

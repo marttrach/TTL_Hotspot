@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         arch:
-          - x86_64-24.10.5
+          - x86_64-25.12.2
 
     steps:
       - name: Checkout repository
@@ -33,11 +33,13 @@ jobs:
           MAKEFLAGS: "-j$(nproc)"
           NO_SHFMT_CHECK: 1
 
-      - name: Upload IPK artifacts
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: luci-app-ttl-hotspot-changer-${{ matrix.arch }}
-          path: bin/packages/*/ttl_hotspot/*.ipk
+          path: |
+            bin/packages/*/ttl_hotspot/*.ipk
+            bin/packages/*/ttl_hotspot/*.apk
           if-no-files-found: error
 
   test:
@@ -53,7 +55,7 @@ jobs:
       - name: Download built packages
         uses: actions/download-artifact@v4
         with:
-          name: luci-app-ttl-hotspot-changer-x86_64-24.10.5
+          name: luci-app-ttl-hotspot-changer-x86_64-25.12.2
           path: packages/
 
       - name: Test package installation in container
@@ -62,16 +64,18 @@ jobs:
           ls -la packages/
 
           echo "=== Testing in OpenWrt rootfs ==="
-          docker run --rm -v $PWD/packages:/packages openwrt/rootfs:x86_64-24.10.5 sh -c '
+          docker run --rm -v $PWD/packages:/packages openwrt/rootfs:x86_64-25.12.2 sh -c '
             echo "=== Updating package lists ==="
             mkdir -p /var/lock
-            opkg update || true
+            apk update || true
             
             echo "=== Installing dependencies ==="
-            opkg install luci-base nftables jsonfilter || echo "Some deps may not install in rootfs"
+            apk add luci-base nftables jsonfilter || echo "Some deps may not install in rootfs"
             
             echo "=== Installing our package ==="
-            opkg install /packages/*.ipk || echo "Package install test"
+            apk add --allow-untrusted /packages/*.apk 2>/dev/null || \
+              opkg install /packages/*.ipk 2>/dev/null || \
+              echo "Package install test (tried apk and opkg)"
             
             echo "=== Checking installed files ==="
             ls -la /usr/libexec/ttl-hotspot-changer.sh 2>/dev/null || echo "Main script not found"
