@@ -20,7 +20,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -34,7 +34,7 @@ jobs:
           NO_SHFMT_CHECK: 1
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: luci-app-ttl-hotspot-changer-${{ matrix.arch }}
           path: |
@@ -50,10 +50,10 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Download built packages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: luci-app-ttl-hotspot-changer-x86_64-25.12.2
           path: packages/
