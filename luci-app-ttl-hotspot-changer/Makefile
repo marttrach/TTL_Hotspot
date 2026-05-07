@@ -20,38 +20,22 @@ define Package/$(PKG_NAME)/postinst
 #!/bin/sh
 [ -n "$$IPKG_INSTROOT" ] && exit 0
 
+# Fix permissions (in case package manager didn't preserve them)
 chmod 755 /etc/init.d/ttl-hotspot-changer >/dev/null 2>&1
 chmod 755 /usr/libexec/ttl-hotspot-changer.sh >/dev/null 2>&1
 chmod 755 /etc/hotplug.d/mwan3/20-ttl-hotspot-changer >/dev/null 2>&1
+chmod 755 /etc/uci-defaults/99-ttl-hotspot-changer >/dev/null 2>&1
 
+# Strip Windows CR (cross-platform build safety)
 for f in /etc/init.d/ttl-hotspot-changer \
 	/usr/libexec/ttl-hotspot-changer.sh \
-	/etc/hotplug.d/mwan3/20-ttl-hotspot-changer; do
+	/etc/hotplug.d/mwan3/20-ttl-hotspot-changer \
+	/etc/uci-defaults/99-ttl-hotspot-changer; do
 	[ -f "$$f" ] && sed -i 's/\r$$//' "$$f"
 done
 
-CFG=/etc/config/ttl-hotspot-changer
-if [ ! -f "$$CFG" ]; then
-cat <<'EOF' > "$$CFG"
-config ttl-hotspot-changer 'config'
-	option enable '1'
-	option smart '1'
-	option mode 'sub'
-	option ttl_mode 'custom'
-	option custom_ttl '65'
-	option mwan3_mode '1'
-	option mwan3_interface 'modem1'
-	option mwan3_check_interval '300'
-EOF
-fi
-
-ENABLED=$$(uci -q get ttl-hotspot-changer.config.enable)
-if [ "$$ENABLED" = "1" ]; then
-	/etc/init.d/ttl-hotspot-changer enable >/dev/null 2>&1
-	/etc/init.d/ttl-hotspot-changer start >/dev/null 2>&1
-else
-	/etc/init.d/ttl-hotspot-changer disable >/dev/null 2>&1
-fi
+# Config initialization and service enable/start are handled by
+# /etc/uci-defaults/99-ttl-hotspot-changer (runs after system is fully booted)
 exit 0
 endef
 

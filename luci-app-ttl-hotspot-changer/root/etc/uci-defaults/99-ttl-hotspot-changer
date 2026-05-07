@@ -1,0 +1,31 @@
+#!/bin/sh
+# uci-defaults: first-boot initialization for ttl-hotspot-changer
+# This script runs once after installation when the system is fully booted,
+# then deletes itself automatically (exit 0 = success = auto-delete).
+
+CFG="ttl-hotspot-changer"
+
+# Create default config only if it doesn't exist or is empty
+if ! uci -q get "$CFG.config" >/dev/null 2>&1; then
+	uci batch <<-EOF
+		set ${CFG}.config='ttl-hotspot-changer'
+		set ${CFG}.config.enable='1'
+		set ${CFG}.config.smart='1'
+		set ${CFG}.config.mode='sub'
+		set ${CFG}.config.ttl_mode='custom'
+		set ${CFG}.config.custom_ttl='65'
+		set ${CFG}.config.mwan3_mode='1'
+		set ${CFG}.config.mwan3_interface='modem1'
+		set ${CFG}.config.mwan3_check_interval='300'
+	EOF
+	uci commit "$CFG"
+fi
+
+# Enable and start service when system is fully ready
+ENABLED=$(uci -q get ${CFG}.config.enable)
+if [ "$ENABLED" = "1" ]; then
+	/etc/init.d/ttl-hotspot-changer enable 2>/dev/null
+	/etc/init.d/ttl-hotspot-changer start 2>/dev/null
+fi
+
+exit 0
