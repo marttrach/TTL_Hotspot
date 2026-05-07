@@ -24,8 +24,10 @@ fi
 # Enable and start service when system is fully ready
 ENABLED=$(uci -q get ${CFG}.config.enable)
 if [ "$ENABLED" = "1" ]; then
-	/etc/init.d/ttl-hotspot-changer enable 2>/dev/null
-	/etc/init.d/ttl-hotspot-changer start 2>/dev/null
+	/etc/init.d/ttl-hotspot-changer enable >/dev/null 2>&1
+	/etc/init.d/ttl-hotspot-changer start >/dev/null 2>&1
+else
+	/etc/init.d/ttl-hotspot-changer disable >/dev/null 2>&1
 fi
 
 exit 0
